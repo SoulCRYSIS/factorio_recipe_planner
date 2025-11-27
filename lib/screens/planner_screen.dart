@@ -1,9 +1,10 @@
-import 'package:factorio_recipe_planner/widgets/recipe_node.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:graphview/GraphView.dart';
 import '../providers/planner_provider.dart';
 import '../models/node_data.dart';
+import '../services/data_manager.dart';
+import '../widgets/recipe_node.dart';
 import '../widgets/sidebar.dart';
 
 class PlannerScreen extends StatefulWidget {
@@ -14,6 +15,8 @@ class PlannerScreen extends StatefulWidget {
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
+  final _graphKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,11 +24,16 @@ class _PlannerScreenState extends State<PlannerScreen> {
         title: const Text("Factorio Recipe Planner"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
+            icon: const Icon(Icons.center_focus_strong),
             onPressed: () {
-              Provider.of<PlannerProvider>(context, listen: false).clearBoard();
+              // Force re-center by replacing the graphview key or similar?
+              // GraphView doesn't have an easy "center" method exposed on the controller yet.
+              // But we can clear and re-add (heavy) or just notify listeners to refresh layout?
+              // Let's try simply notifying the provider which triggers rebuild.
+              // This re-runs the layout algorithm.
+              Provider.of<PlannerProvider>(context, listen: false).refreshLayout();
             },
-            tooltip: "Clear Board",
+            tooltip: "Recenter Layout",
           ),
           IconButton(
             icon: const Icon(Icons.save),
@@ -36,27 +44,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
             icon: const Icon(Icons.upload_file),
             onPressed: _import,
             tooltip: "Import JSON",
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'load_all') {
-                _confirmLoadAll(context);
-              } else if (value == 'clear') {
-                 Provider.of<PlannerProvider>(context, listen: false).clearBoard();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem(
-                  value: 'load_all',
-                  child: Text('Load All Base Recipes'),
-                ),
-                const PopupMenuItem(
-                  value: 'clear',
-                  child: Text('Clear Board'),
-                ),
-              ];
-            },
           ),
         ],
       ),
@@ -80,10 +67,12 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   return InteractiveViewer(
                     constrained: false,
                     boundaryMargin: const EdgeInsets.all(1000),
-                    minScale: 0.01,
+                    minScale: 0.1,
                     maxScale: 5.0,
                     child: GraphView(
+                      key: _graphKey,
                       graph: provider.graph,
+                      toggleAnimationDuration: Duration.zero,
                       algorithm: SugiyamaAlgorithm(provider.builder),
                       paint: Paint()
                         ..color = Colors.grey.shade400
@@ -108,37 +97,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
           const SizedBox(
             width: 320,
             child: Sidebar(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLoadAll(BuildContext context) {
-     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Load All Recipes?"),
-        content: const Text("This will load 1000+ recipes. It may take a few seconds and lag the browser."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // Show a loading indicator or snackbar
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Loading recipes... please wait."))
-              );
-              
-              // Use Future.delayed to allow snackbar to show
-              Future.delayed(const Duration(milliseconds: 100), () {
-                 Provider.of<PlannerProvider>(context, listen: false).populateAllRecipes();
-              });
-            },
-            child: const Text("Load All"),
           ),
         ],
       ),
@@ -210,5 +168,68 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 }
+
+class _AddBaseRecipeDialog extends StatefulWidget {
+  @override
+  State<_AddBaseRecipeDialog> createState() => _AddBaseRecipeDialogState();
+}
+
+class _AddBaseRecipeDialogState extends State<_AddBaseRecipeDialog> {
+  final _searchController = TextEditingController();
+  
+  @override
+  Widget build(BuildContext context) {
+    final dataManager = Provider.of<DataManager>(context, listen: false);
+    // Filter recipes based on search
+    final recipes = dataManager.data?.recipes ?? [];
+    
+    // Simple efficient filtering for display
+    final filtered = _searchController.text.isEmpty 
+      ? recipes.take(100).toList() 
+      : recipes.where((r) => r.name.toLowerCase().contains(_searchController.text.toLowerCase())).take(100).toList();
+
+    return AlertDialog(
+      title: const Text("Add Base Recipe"),
+      content: SizedBox(
+        width: 400,
+        height: 500,
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: "Search recipes...",
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filtered.length,
+                itemBuilder: (ctx, i) {
+                  final recipe = filtered[i];
+                  return ListTile(
+                    title: Text(recipe.name),
+                    subtitle: Text(recipe.category),
+                    onTap: () {
+                      Provider.of<PlannerProvider>(context, listen: false).addRecipeNode(recipe);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+      ],
+    );
+  }
+}
+
 
 

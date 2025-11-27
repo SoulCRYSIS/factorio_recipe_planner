@@ -71,7 +71,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
         ElevatedButton(
           onPressed: () {
-            if (_nameController.text.isNotEmpty && _selectedIconId != null) {
+            if (_nameController.text.isNotEmpty) {
               final newItem = Item(
                 id: const Uuid().v4(),
                 name: _nameController.text,

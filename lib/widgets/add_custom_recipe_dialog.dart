@@ -47,7 +47,11 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
               const SizedBox(height: 16),
               _buildSection("Ingredients", _ingredients),
               const Divider(),
-              _buildSection("Products", _products),
+              _buildSection("Products", _products, onProductAdded: (name) {
+                if (_nameController.text.isEmpty) {
+                  _nameController.text = name;
+                }
+              }),
             ],
           ),
         ),
@@ -64,7 +68,7 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
     );
   }
 
-  Widget _buildSection(String title, Map<String, double> items) {
+  Widget _buildSection(String title, Map<String, double> items, {Function(String)? onProductAdded}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -77,6 +81,9 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
               onPressed: () => _showItemPicker((item, amount) {
                 setState(() {
                   items[item.id] = amount;
+                  if (onProductAdded != null) {
+                    onProductAdded(item.name);
+                  }
                 });
               }),
             ),

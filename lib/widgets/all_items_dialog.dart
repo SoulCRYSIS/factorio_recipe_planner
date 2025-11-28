@@ -89,7 +89,6 @@ class _AllItemsDialogState extends State<AllItemsDialog> {
                                   );
                                 } : null, // Do nothing for base items or maybe show info?
                                 child: Card(
-                                  color: isCustom ? Colors.purple.shade50 : null,
                                   child: Padding(
                                     padding: const EdgeInsets.all(4.0),
                                     child: Column(

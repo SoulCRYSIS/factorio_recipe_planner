@@ -56,10 +56,10 @@ class FactorioIcon extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.grey[300],
           borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.grey),
         ),
-        child: Icon(Icons.question_mark, size: size * 0.8, color: Colors.grey[700]),
+        child: Icon(Icons.question_mark, size: size * 0.8),
       );
     }
 

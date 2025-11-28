@@ -142,7 +142,7 @@ class _SidebarState extends State<Sidebar> {
                 dense: true,
                 tileColor: isOnBoard
                     ? Colors.green.withOpacity(0.1)
-                    : (isCustom ? Colors.purple.shade50 : null),
+                    : null,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

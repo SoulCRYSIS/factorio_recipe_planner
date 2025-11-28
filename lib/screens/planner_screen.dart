@@ -44,37 +44,34 @@ class PlannerScreen extends StatelessWidget {
         children: [
           // Canvas Area
           Expanded(
-            child: Container(
-              color: Colors.grey[50],
-              child: Consumer<PlannerProvider>(
-                builder: (context, provider, child) {
-                  if (provider.nodes.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Add a recipe from the sidebar to start",
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    );
-                  }
-                  
-                  return GraphView.builder(
-                    graph: provider.graph,
-                    animated: false,
-                    autoZoomToFit: false,
-                    algorithm: SugiyamaAlgorithm(provider.builder),
-                    paint: Paint()
-                      ..color = Colors.grey.shade400
-                      ..strokeWidth = 2
-                      ..style = PaintingStyle.stroke,
-                    builder: (Node node) {
-                      final data = node.key!.value as NodeData;
-                      return RecipeNode(
-                        nodeData: data,
-                      );
-                    },
+            child: Consumer<PlannerProvider>(
+              builder: (context, provider, child) {
+                if (provider.nodes.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Add a recipe from the sidebar to start",
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
                   );
-                },
-              ),
+                }
+                
+                return GraphView.builder(
+                  graph: provider.graph,
+                  animated: false,
+                  autoZoomToFit: false,
+                  algorithm: SugiyamaAlgorithm(provider.builder),
+                  paint: Paint()
+                    ..color = Colors.grey.shade400
+                    ..strokeWidth = 2
+                    ..style = PaintingStyle.stroke,
+                  builder: (Node node) {
+                    final data = node.key!.value as NodeData;
+                    return RecipeNode(
+                      nodeData: data,
+                    );
+                  },
+                );
+              },
             ),
           ),
           

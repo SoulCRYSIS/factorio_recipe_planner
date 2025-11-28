@@ -52,7 +52,7 @@ class PlannerProvider extends ChangeNotifier {
 
   PlannerProvider(this._dataManager) {
     builder
-      ..layeringStrategy = LayeringStrategy.topDown
+      ..layeringStrategy = LayeringStrategy.longestPath
       ..nodeSeparation = (50)
       ..levelSeparation = (100)
       ..orientation = (SugiyamaConfiguration.ORIENTATION_TOP_BOTTOM);

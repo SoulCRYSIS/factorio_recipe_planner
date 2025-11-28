@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:desktop_drop/desktop_drop.dart';
@@ -9,15 +8,16 @@ import 'dart:convert';
 import '../providers/planner_provider.dart';
 import '../models/item.dart';
 
-class AddCustomItemDialog extends StatefulWidget {
-  const AddCustomItemDialog({super.key});
+class EditCustomItemDialog extends StatefulWidget {
+  final Item item;
+  const EditCustomItemDialog({super.key, required this.item});
 
   @override
-  State<AddCustomItemDialog> createState() => _AddCustomItemDialogState();
+  State<EditCustomItemDialog> createState() => _EditCustomItemDialogState();
 }
 
-class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
-  final _nameController = TextEditingController();
+class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
+  late TextEditingController _nameController;
   String? _imageBase64;
   bool _isLoadingImage = false;
   bool _isDragging = false;
@@ -25,15 +25,33 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
 
   // Machine Properties
   bool _isMachine = false;
-  final _speedController = TextEditingController(text: "1.0");
-  final _productivityController = TextEditingController(text: "0"); // Percent
-  final _usageController = TextEditingController();
-  final _pollutionController = TextEditingController();
+  late TextEditingController _speedController;
+  late TextEditingController _productivityController;
+  late TextEditingController _usageController;
+  late TextEditingController _pollutionController;
   
   String _machineType = "electric";
   final List<String> _machineTypes = ["electric", "burner"];
   
-  final List<String> _selectedFuelCategories = [];
+  List<String> _selectedFuelCategories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.item.name);
+    _imageBase64 = widget.item.imageBase64;
+    
+    _isMachine = widget.item.machine != null;
+    final m = widget.item.machine;
+    
+    _speedController = TextEditingController(text: m?.speed.toString() ?? "1.0");
+    _productivityController = TextEditingController(
+        text: ((m?.baseEffect?['productivity'] ?? 0) * 100).toString());
+    _usageController = TextEditingController(text: m?.usage?.toString() ?? "");
+    _pollutionController = TextEditingController(text: m?.pollution?.toString() ?? "");
+    _machineType = m?.type ?? "electric";
+    _selectedFuelCategories = List.from(m?.fuelCategories ?? []);
+  }
 
   @override
   void dispose() {
@@ -89,7 +107,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
     final availableFuelCategories = provider.availableFuelCategories.toList()..sort();
 
     return AlertDialog(
-      title: const Text("New Custom Item"),
+      title: const Text("Edit Custom Item"),
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
@@ -104,7 +122,6 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
               const SizedBox(height: 16),
               
               // Image Upload Section
-              // Mipmap Toggle
               Row(
                 children: [
                   Checkbox(
@@ -291,21 +308,22 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
                  );
               }
 
-              final newItem = Item(
-                id: const Uuid().v4(),
+              final updatedItem = Item(
+                id: widget.item.id, // Keep same ID
                 name: _nameController.text,
                 category: 'custom',
                 row: 0,
                 imageBase64: _imageBase64,
                 machine: machineDef,
               );
-              Provider.of<PlannerProvider>(context, listen: false).addCustomItem(newItem);
+              Provider.of<PlannerProvider>(context, listen: false).updateCustomItem(updatedItem);
               Navigator.pop(context);
             }
           },
-          child: const Text("Create"),
+          child: const Text("Save"),
         ),
       ],
     );
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../services/data_manager.dart';
 import '../providers/planner_provider.dart';
@@ -31,6 +32,16 @@ class FactorioIcon extends StatelessWidget {
     // Check custom items
     try {
       final customItem = plannerProvider.customItems.firstWhere((i) => i.id == itemId);
+      
+      if (customItem.imageBase64 != null) {
+         return Image.memory(
+           base64Decode(customItem.imageBase64!),
+           width: size,
+           height: size,
+           fit: BoxFit.contain,
+         );
+      }
+
       if (customItem.iconId != null) {
         effectiveIconId = customItem.iconId!;
       }
@@ -90,4 +101,3 @@ class _SpritePainter extends CustomPainter {
     return oldDelegate.image != image || oldDelegate.x != x || oldDelegate.y != y;
   }
 }
-

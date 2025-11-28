@@ -1,31 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../providers/planner_provider.dart';
 import '../services/data_manager.dart';
 import '../models/recipe.dart';
 import '../models/item.dart';
 import 'factorio_icon.dart';
 
-class AddCustomRecipeDialog extends StatefulWidget {
-  const AddCustomRecipeDialog({super.key});
+class EditCustomRecipeDialog extends StatefulWidget {
+  final Recipe recipe;
+  const EditCustomRecipeDialog({super.key, required this.recipe});
 
   @override
-  State<AddCustomRecipeDialog> createState() => _AddCustomRecipeDialogState();
+  State<EditCustomRecipeDialog> createState() => _EditCustomRecipeDialogState();
 }
 
-class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
-  final _nameController = TextEditingController();
-  final _timeController = TextEditingController(text: "1.0");
+class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
+  late TextEditingController _nameController;
+  late TextEditingController _timeController;
 
-  final Map<String, double> _ingredients = {};
-  final Map<String, double> _products = {};
-  final List<String> _producers = [];
+  late Map<String, double> _ingredients;
+  late Map<String, double> _products;
+  late List<String> _producers;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.recipe.name);
+    _timeController = TextEditingController(text: widget.recipe.time.toString());
+    _ingredients = Map.from(widget.recipe.ingredients);
+    _products = Map.from(widget.recipe.products);
+    _producers = List.from(widget.recipe.producers);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("New Custom Recipe"),
+      title: const Text("Edit Custom Recipe"),
       content: SizedBox(
         width: 500,
         height: 600,
@@ -48,11 +65,7 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
               const SizedBox(height: 16),
               _buildSection("Ingredients", _ingredients),
               const Divider(),
-              _buildSection("Products", _products, onProductAdded: (name) {
-                if (_nameController.text.isEmpty) {
-                  _nameController.text = name;
-                }
-              }),
+              _buildSection("Products", _products),
               const Divider(),
               _buildProducerSection(),
             ],
@@ -61,17 +74,38 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
       ),
       actions: [
         TextButton(
+          onPressed: () {
+             // Confirm delete
+             showDialog(
+               context: context,
+               builder: (ctx) => AlertDialog(
+                 title: const Text("Delete Recipe?"),
+                 content: const Text("This cannot be undone."),
+                 actions: [
+                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                   TextButton(onPressed: () {
+                     Provider.of<PlannerProvider>(context, listen: false).deleteCustomRecipe(widget.recipe.id);
+                     Navigator.pop(ctx); // Close confirm
+                     Navigator.pop(context); // Close edit dialog
+                   }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
+                 ],
+               )
+             );
+          }, 
+          child: const Text("Delete", style: TextStyle(color: Colors.red))
+        ),
+        TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel")),
         ElevatedButton(
-          onPressed: _createRecipe,
-          child: const Text("Create"),
+          onPressed: _saveRecipe,
+          child: const Text("Save"),
         ),
       ],
     );
   }
 
-  Widget _buildSection(String title, Map<String, double> items, {Function(String)? onProductAdded}) {
+  Widget _buildSection(String title, Map<String, double> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,9 +118,6 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
               onPressed: () => _showItemPicker((item, amount) {
                 setState(() {
                   items[item.id] = amount;
-                  if (onProductAdded != null) {
-                    onProductAdded(item.name);
-                  }
                 });
               }),
             ),
@@ -167,14 +198,14 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
     );
   }
 
-  void _createRecipe() {
+  void _saveRecipe() {
     if (_nameController.text.isEmpty || _products.isEmpty) return;
 
-    final recipe = Recipe(
-      id: const Uuid().v4(),
+    final updatedRecipe = Recipe(
+      id: widget.recipe.id, // Keep same ID
       name: _nameController.text,
       category: 'custom',
-      row: 0,
+      row: widget.recipe.row,
       time: double.tryParse(_timeController.text) ?? 1.0,
       ingredients: _ingredients,
       products: _products,
@@ -182,8 +213,7 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
     );
 
     final provider = Provider.of<PlannerProvider>(context, listen: false);
-    provider.addCustomRecipe(recipe);
-    provider.addRecipeNode(recipe, isCustom: true);
+    provider.updateCustomRecipe(updatedRecipe);
     Navigator.pop(context);
   }
 }
@@ -260,3 +290,4 @@ class _ItemPickerDialogState extends State<_ItemPickerDialog> {
     );
   }
 }
+

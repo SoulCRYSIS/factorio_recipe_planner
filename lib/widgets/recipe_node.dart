@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 import '../models/node_data.dart';
 import 'factorio_icon.dart';
+import 'edit_custom_recipe_dialog.dart';
 
 class RecipeNode extends StatelessWidget {
   final NodeData nodeData;
-  final VoidCallback? onTap;
 
-  const RecipeNode({super.key, required this.nodeData, this.onTap});
+  const RecipeNode({super.key, required this.nodeData});
 
   @override
   Widget build(BuildContext context) {
     final recipe = nodeData.recipe;
     
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // Open edit dialog if it's a custom recipe
+        if (nodeData.isCustom) {
+          showDialog(
+            context: context,
+            builder: (ctx) => EditCustomRecipeDialog(recipe: recipe),
+          );
+        } else {
+          // Maybe show info for base recipes? For now, do nothing or show snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Cannot edit base game recipes."), duration: Duration(seconds: 1)),
+          );
+        }
+      },
       child: Container(
         width: 180,
         padding: const EdgeInsets.all(8),
@@ -33,7 +46,6 @@ class RecipeNode extends StatelessWidget {
           children: [
             // Ingredients (Inputs) - displayed at top
             if (recipe.ingredients.isNotEmpty) ...[
-              const Text("In", style: TextStyle(fontSize: 9, color: Colors.grey)),
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
@@ -53,7 +65,7 @@ class RecipeNode extends StatelessWidget {
               ),
               const Divider(height: 8),
             ],
-
+      
             // Title
             Text(
               recipe.name,
@@ -63,11 +75,19 @@ class RecipeNode extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Text("${recipe.time}s", style: const TextStyle(fontSize: 9, color: Colors.grey)),
-
+            
+            // Producers
+            if (recipe.producers.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 2,
+                children: recipe.producers.map((id) => FactorioIcon(itemId: id, size: 12)).toList(),
+              ),
+            ],
+      
             const Divider(height: 8),
-
+      
             // Products (Outputs) - displayed at bottom
-            const Text("Out", style: TextStyle(fontSize: 9, color: Colors.grey)),
             Wrap(
               spacing: 4,
               runSpacing: 4,
@@ -91,4 +111,3 @@ class RecipeNode extends StatelessWidget {
     );
   }
 }
-

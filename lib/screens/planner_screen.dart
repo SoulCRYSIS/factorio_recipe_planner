@@ -7,15 +7,8 @@ import '../services/data_manager.dart';
 import '../widgets/recipe_node.dart';
 import '../widgets/sidebar.dart';
 
-class PlannerScreen extends StatefulWidget {
+class PlannerScreen extends StatelessWidget {
   const PlannerScreen({super.key});
-
-  @override
-  State<PlannerScreen> createState() => _PlannerScreenState();
-}
-
-class _PlannerScreenState extends State<PlannerScreen> {
-  final _graphKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +30,12 @@ class _PlannerScreenState extends State<PlannerScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: _export,
+            onPressed: () => _export(context),
             tooltip: "Export JSON",
           ),
           IconButton(
             icon: const Icon(Icons.upload_file),
-            onPressed: _import,
+            onPressed: () => _import(context),
             tooltip: "Import JSON",
           ),
         ],
@@ -64,38 +57,29 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     );
                   }
                   
-                  return InteractiveViewer(
-                    constrained: false,
-                    boundaryMargin: const EdgeInsets.all(1000),
-                    minScale: 0.1,
-                    maxScale: 5.0,
-                    child: GraphView(
-                      key: _graphKey,
-                      graph: provider.graph,
-                      toggleAnimationDuration: Duration.zero,
-                      algorithm: SugiyamaAlgorithm(provider.builder),
-                      paint: Paint()
-                        ..color = Colors.grey.shade400
-                        ..strokeWidth = 2
-                        ..style = PaintingStyle.stroke,
-                      builder: (Node node) {
-                        final data = node.key!.value as NodeData;
-                        return RecipeNode(
-                          nodeData: data,
-                          onTap: () => _confirmDelete(context, node, data),
-                        );
-                      },
-                    ),
+                  return GraphView.builder(
+                    graph: provider.graph,
+                    animated: false,
+                    autoZoomToFit: false,
+                    algorithm: SugiyamaAlgorithm(provider.builder),
+                    paint: Paint()
+                      ..color = Colors.grey.shade400
+                      ..strokeWidth = 2
+                      ..style = PaintingStyle.stroke,
+                    builder: (Node node) {
+                      final data = node.key!.value as NodeData;
+                      return RecipeNode(
+                        nodeData: data,
+                      );
+                    },
                   );
                 },
               ),
             ),
           ),
           
-          // Sidebar Area
-          const VerticalDivider(width: 1),
           const SizedBox(
-            width: 320,
+            width: 280,
             child: Sidebar(),
           ),
         ],
@@ -103,29 +87,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, Node node, NodeData data) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text("Remove ${data.recipe.name}?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              Provider.of<PlannerProvider>(context, listen: false).removeNode(node);
-              Navigator.pop(ctx);
-            },
-            child: const Text("Remove", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _export() {
+  void _export(BuildContext context) {
     final json = Provider.of<PlannerProvider>(context, listen: false).exportToJson();
     showDialog(
       context: context,
@@ -139,7 +101,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  void _import() {
+  void _import(BuildContext context) {
     final controller = TextEditingController();
     showDialog(
       context: context,

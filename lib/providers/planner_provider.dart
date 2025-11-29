@@ -58,6 +58,16 @@ class PlannerProvider extends ChangeNotifier {
       ..orientation = (SugiyamaConfiguration.ORIENTATION_TOP_BOTTOM);
   }
 
+  void setLayeringStrategy(LayeringStrategy strategy) {
+    builder.layeringStrategy = strategy;
+    notifyListeners();
+  }
+
+  void setOrientation(int orientation) {
+    builder.orientation = orientation;
+    notifyListeners();
+  }
+
   void refreshLayout() {
     notifyListeners();
   }

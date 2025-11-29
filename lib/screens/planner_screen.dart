@@ -17,16 +17,37 @@ class PlannerScreen extends StatelessWidget {
         title: const Text("Factorio Recipe Planner"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.center_focus_strong),
+            icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Force re-center by replacing the graphview key or similar?
-              // GraphView doesn't have an easy "center" method exposed on the controller yet.
-              // But we can clear and re-add (heavy) or just notify listeners to refresh layout?
-              // Let's try simply notifying the provider which triggers rebuild.
-              // This re-runs the layout algorithm.
               Provider.of<PlannerProvider>(context, listen: false).refreshLayout();
             },
-            tooltip: "Recenter Layout",
+            tooltip: "Refresh Graph",
+          ),
+          PopupMenuButton<LayeringStrategy>(
+            icon: const Icon(Icons.layers),
+            tooltip: "Layering Strategy",
+            onSelected: (strategy) {
+              Provider.of<PlannerProvider>(context, listen: false).setLayeringStrategy(strategy);
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: LayeringStrategy.longestPath, child: Text("Longest Path")),
+              PopupMenuItem(value: LayeringStrategy.coffmanGraham, child: Text("Coffman Graham")),
+              PopupMenuItem(value: LayeringStrategy.networkSimplex, child: Text("Network Simplex")),
+              PopupMenuItem(value: LayeringStrategy.topDown, child: Text("Top Down")),
+            ],
+          ),
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.rotate_90_degrees_ccw),
+            tooltip: "Orientation",
+            onSelected: (orientation) {
+              Provider.of<PlannerProvider>(context, listen: false).setOrientation(orientation);
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: SugiyamaConfiguration.ORIENTATION_TOP_BOTTOM, child: Text("Top -> Bottom")),
+              const PopupMenuItem(value: SugiyamaConfiguration.ORIENTATION_BOTTOM_TOP, child: Text("Bottom -> Top")),
+              const PopupMenuItem(value: SugiyamaConfiguration.ORIENTATION_LEFT_RIGHT, child: Text("Left -> Right")),
+              const PopupMenuItem(value: SugiyamaConfiguration.ORIENTATION_RIGHT_LEFT, child: Text("Right -> Left")),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.save),

@@ -2,7 +2,7 @@ import 'recipe.dart';
 
 class NodeData {
   final String id; // Unique instance ID (UUID)
-  final Recipe recipe;
+  Recipe recipe;
   final bool isCustom;
 
   NodeData({required this.id, required this.recipe, this.isCustom = false});
@@ -13,4 +13,3 @@ class NodeData {
   @override
   int get hashCode => id.hashCode;
 }
-

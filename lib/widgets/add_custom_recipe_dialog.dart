@@ -8,7 +8,8 @@ import '../models/item.dart';
 import 'factorio_icon.dart';
 
 class AddCustomRecipeDialog extends StatefulWidget {
-  const AddCustomRecipeDialog({super.key});
+  final Item? initialProduct;
+  const AddCustomRecipeDialog({super.key, this.initialProduct});
 
   @override
   State<AddCustomRecipeDialog> createState() => _AddCustomRecipeDialogState();
@@ -21,6 +22,15 @@ class _AddCustomRecipeDialogState extends State<AddCustomRecipeDialog> {
   final Map<String, double> _ingredients = {};
   final Map<String, double> _products = {};
   final List<String> _producers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialProduct != null) {
+      _products[widget.initialProduct!.id] = 1.0;
+      _nameController.text = widget.initialProduct!.name;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -51,15 +51,12 @@ class RecipeNode extends StatelessWidget {
                 runSpacing: 4,
                 alignment: WrapAlignment.center,
                 children: recipe.ingredients.entries.map((e) {
-                  return Tooltip(
-                    message: "${e.key}: ${e.value}",
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FactorioIcon(itemId: e.key, size: 20),
-                        Text("${e.value}", style: const TextStyle(fontSize: 9)),
-                      ],
-                    ),
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FactorioIcon(itemId: e.key, size: 20),
+                      Text("${e.value}", style: const TextStyle(fontSize: 9)),
+                    ],
                   );
                 }).toList(),
               ),
@@ -81,7 +78,7 @@ class RecipeNode extends StatelessWidget {
               const SizedBox(height: 4),
               Wrap(
                 spacing: 2,
-                children: recipe.producers.map((id) => FactorioIcon(itemId: id, size: 12)).toList(),
+                children: recipe.producers.map((id) => FactorioIcon(itemId: id, size: 16)).toList(),
               ),
             ],
       
@@ -93,15 +90,12 @@ class RecipeNode extends StatelessWidget {
               runSpacing: 4,
               alignment: WrapAlignment.center,
               children: recipe.products.entries.map((e) {
-                return Tooltip(
-                  message: "${e.key}: ${e.value}",
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FactorioIcon(itemId: e.key, size: 28),
-                      Text("${e.value}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FactorioIcon(itemId: e.key, size: 28),
+                    Text("${e.value}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
                 );
               }).toList(),
             ),

@@ -300,7 +300,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
                 machine: machineDef,
               );
               Provider.of<PlannerProvider>(context, listen: false).addCustomItem(newItem);
-              Navigator.pop(context);
+              Navigator.pop(context, newItem);
             }
           },
           child: const Text("Create"),

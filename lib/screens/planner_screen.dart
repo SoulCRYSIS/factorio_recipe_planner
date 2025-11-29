@@ -58,7 +58,7 @@ class PlannerScreen extends StatelessWidget {
                 return GraphView.builder(
                   graph: provider.graph,
                   animated: false,
-                  autoZoomToFit: false,
+                  autoZoomToFit: true,
                   algorithm: SugiyamaAlgorithm(provider.builder),
                   paint: Paint()
                     ..color = Colors.grey.shade400

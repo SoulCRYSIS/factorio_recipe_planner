@@ -204,7 +204,7 @@ class PlannerProvider extends ChangeNotifier {
   }
 
   void addCustomItem(Item item) {
-    _customItems.add(item);
+    _customItems.insert(0, item); // Add to beginning of list
     _scheduleAutoSave();
     notifyListeners();
   }
@@ -228,7 +228,7 @@ class PlannerProvider extends ChangeNotifier {
   }
 
   void addCustomRecipe(Recipe recipe) {
-    _customRecipes.add(recipe);
+    _customRecipes.insert(0, recipe); // Add to beginning of list
     _scheduleAutoSave();
     notifyListeners();
   }
@@ -238,34 +238,22 @@ class PlannerProvider extends ChangeNotifier {
     if (index != -1) {
       _customRecipes[index] = recipe;
       
-      // Also update nodes that use this recipe
-      // GraphView nodes hold reference to NodeData, which holds Recipe.
-      // If we update NodeData.recipe, it might reflect if reference is same, but here we are replacing object.
-      // So we need to update nodes.
+      // Update the recipe in any nodes that use it AND refresh connections
       for (final node in _nodes) {
          final data = node.key!.value as NodeData;
          if (data.isCustom && data.recipe.id == recipe.id) {
-             // Update the recipe in the node data
-             // Since NodeData fields are final, we can't set them.
-             // But NodeData(recipe: recipe) would need replacing the Node key? 
-             // Node.key is dynamic. 
-             // Actually, better to just remove and re-add node? Or make NodeData mutable?
-             // GraphView uses identity/key for graph structure.
-             // If we change data inside key, layout might not break, but we need to ensure UI updates.
-             // Let's just hope Flutter rebuild handles it if we notifyListeners. 
-             // But NodeData holds the OLD recipe object.
-             // We can't easily swap it in place if NodeData is immutable.
-             // Simplest hack: Modify NodeData to be mutable or replace the node?
-             // Replacing node disconnects edges.
+             // Update the recipe reference in NodeData
+             data.recipe = recipe;
              
-             // Let's assume for now we just update list. The graph nodes will still point to OLD recipe object until reload.
-             // To fix this properly without destroying graph:
-             // 1. Find nodes
-             // 2. Update their data (we need to make NodeData not final or use a wrapper)
-             // Since I can't change NodeData definition easily without refactor, I will just not update live nodes 
-             // OR I will force a reload?
-             // Actually, let's just iterate and try to hack it if possible, or just accept they update on reload.
-             // Better: Update the reference in the graph? No, value is stored.
+             // Remove existing edges for this node
+             final edgesToRemove = graph.edges.where((e) => e.source == node || e.destination == node).toList();
+             for (final edge in edgesToRemove) {
+               graph.removeEdge(edge);
+             }
+             
+             // Re-run auto-connect
+             // Note: _autoConnect checks BOTH directions (in and out)
+             _autoConnect(node, data);
          }
       }
       

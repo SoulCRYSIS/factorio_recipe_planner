@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/planner_provider.dart';
 import '../services/data_manager.dart';
 import '../models/node_data.dart';
+import '../models/item.dart';
 import 'factorio_icon.dart';
 import 'add_custom_item_dialog.dart';
 import 'add_custom_recipe_dialog.dart';
@@ -18,6 +19,8 @@ class Sidebar extends StatefulWidget {
 
 class _SidebarState extends State<Sidebar> {
   String _searchQuery = "";
+  final Set<String> _selectedCategories = {};
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +33,26 @@ class _SidebarState extends State<Sidebar> {
       ...?dataManager.data?.recipes,
     ];
 
-    final filteredRecipes = _searchQuery.isEmpty
-        ? allRecipes
-        : allRecipes
-            .where((r) =>
-                r.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
+    // Extract all unique categories
+    final allCategories = allRecipes.map((r) => r.category).toSet().toList()..sort();
 
-    // Limit initial display if search is empty to avoid huge list rendering lag if needed,
-    // but ListView.builder is efficient. Factorio has ~1000 recipes.
+    // Initialize selection if first run
+    if (!_initialized && allCategories.isNotEmpty) {
+      _selectedCategories.addAll(allCategories);
+      _initialized = true;
+    }
+    // Also ensure new categories are added if data changes (e.g. custom recipe added with new category)
+    // But we don't want to re-select everything if user deselected some.
+    // For simplicity, we'll just rely on manual filtering, but if a new category appears it won't be selected by default if we strictly filter?
+    // Actually, "Select All" usually implies "Everything".
+    // Let's handle this in the filter dialog.
+
+    final filteredRecipes = allRecipes.where((r) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          r.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCategory = _selectedCategories.contains(r.category);
+      return matchesSearch && matchesCategory;
+    }).toList();
 
     return Column(
       children: [
@@ -48,10 +62,18 @@ class _SidebarState extends State<Sidebar> {
             IconButton(
               icon: const Icon(Icons.add, size: 16),
               tooltip: "New Item",
-              onPressed: () {
-                showDialog(
+              onPressed: () async {
+                final newItem = await showDialog<Item>(
                     context: context,
                     builder: (ctx) => const AddCustomItemDialog());
+                
+                if (newItem != null && mounted) {
+                   // Chain to Add Recipe Dialog
+                   showDialog(
+                     context: context,
+                     builder: (ctx) => AddCustomRecipeDialog(initialProduct: newItem)
+                   );
+                }
               },
             ),
             IconButton(
@@ -86,17 +108,32 @@ class _SidebarState extends State<Sidebar> {
           ],
         ),
 
-        // Search Bar
+        // Search Bar & Filter
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            onChanged: (val) => setState(() => _searchQuery = val),
-            decoration: const InputDecoration(
-              hintText: "Search recipes...",
-              prefixIcon: Icon(Icons.search),
-              isDense: true,
-              border: OutlineInputBorder(),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                  decoration: const InputDecoration(
+                    hintText: "Search recipes...",
+                    prefixIcon: Icon(Icons.search),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(
+                  Icons.filter_list,
+                  color: _selectedCategories.length != allCategories.length ? Colors.blue : null,
+                ),
+                tooltip: "Filter by Category",
+                onPressed: () => _showFilterDialog(allCategories),
+              ),
+            ],
           ),
         ),
 
@@ -170,6 +207,82 @@ class _SidebarState extends State<Sidebar> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showFilterDialog(List<String> allCategories) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Filter Categories"),
+              content: SizedBox(
+                width: 300,
+                height: 400,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setStateDialog(() {
+                              _selectedCategories.addAll(allCategories);
+                            });
+                            // Also update main state
+                            this.setState(() {});
+                          }, 
+                          child: const Text("Select All")
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setStateDialog(() {
+                              _selectedCategories.clear();
+                            });
+                            this.setState(() {});
+                          }, 
+                          child: const Text("Unselect All")
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    Expanded(
+                      child: ListView(
+                        children: allCategories.map((cat) {
+                          return CheckboxListTile(
+                            title: Text(cat),
+                            value: _selectedCategories.contains(cat),
+                            dense: true,
+                            onChanged: (val) {
+                              setStateDialog(() {
+                                if (val == true) {
+                                  _selectedCategories.add(cat);
+                                } else {
+                                  _selectedCategories.remove(cat);
+                                }
+                              });
+                              // Force rebuild of sidebar list immediately
+                              this.setState(() {}); 
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Done"),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 

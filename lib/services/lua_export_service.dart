@@ -63,19 +63,30 @@ class LuaExportService {
 
     final customRecipesToExport = provider.customRecipes
         .where((r) => usedCustomRecipeIds.contains(r.id))
+        .toList()
+        .reversed
         .toList();
 
     final customItemsToExport = provider.customItems
         .where((i) => usedCustomItemIds.contains(i.id))
+        .toList()
+        .reversed
         .toList();
 
-    final machineItems =
-        customItemsToExport.where((i) => i.machine != null).toList();
+    final machineItems = customItemsToExport
+        .where((i) => i.machine != null)
+        .toList()
+        .reversed
+        .toList();
 
-    final machineRecipes = customRecipesToExport.where((r) {
-      return r.products.keys
-          .any((prodId) => machineItems.any((m) => m.id == prodId));
-    }).toList();
+    final machineRecipes = customRecipesToExport
+        .where((r) {
+          return r.products.keys
+              .any((prodId) => machineItems.any((m) => m.id == prodId));
+        })
+        .toList()
+        .reversed
+        .toList();
 
     final buffer = StringBuffer();
 
@@ -283,6 +294,10 @@ class LuaExportService {
     },''';
   }
 
+  static String _hyphenate(String name) {
+    return name.toLowerCase().replaceAll(' ', '-');
+  }
+
   static String _generateRecipe(Recipe recipe, String Function(String) getName,
       {required bool isMachineRecipe}) {
     final name = _formatName(recipe.name);
@@ -299,16 +314,18 @@ class LuaExportService {
       return '{ type = "$type", name = "$pName", amount = ${e.value} }';
     }).join(',\n        ');
 
-    final additionalCategories = recipe.additionalCategories.isNotEmpty
-        ? 'additional_categories = { ${recipe.additionalCategories.map((c) => '"$c"').join(', ')} },'
-        : '';
+    String category =
+        "category = \"${_hyphenate(recipe.additionalCategories.firstOrNull ?? '')}\",";
+    if (recipe.additionalCategories.length > 1) {
+      category +=
+          '\n      additional_categories = { ${recipe.additionalCategories.sublist(1).map((c) => '"${_hyphenate(c)}"').join(', ')} },';
+    }
 
     return '''
     {
       type = "recipe",
       name = "$name",
-      category = "${recipe.category}",
-      $additionalCategories
+      $category
       order = "a",
       icon = "__virentis__/graphics/icons/items/foods/$name.png",
       ingredients = {

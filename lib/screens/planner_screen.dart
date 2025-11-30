@@ -32,6 +32,8 @@ class PlannerScreen extends StatelessWidget {
             itemBuilder: (context) => const [
               PopupMenuItem(value: LayeringStrategy.longestPath, child: Text("Longest Path")),
               PopupMenuItem(value: LayeringStrategy.coffmanGraham, child: Text("Coffman Graham")),
+              PopupMenuItem(value: LayeringStrategy.networkSimplex, child: Text("Network Simplex")),
+              PopupMenuItem(value: LayeringStrategy.topDown, child: Text("Top Down")),
             ],
           ),
           PopupMenuButton<int>(

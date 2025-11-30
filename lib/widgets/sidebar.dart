@@ -7,8 +7,10 @@ import '../models/item.dart';
 import 'factorio_icon.dart';
 import 'add_custom_item_dialog.dart';
 import 'add_custom_recipe_dialog.dart';
+import 'edit_custom_recipe_dialog.dart';
 import 'all_items_dialog.dart';
 import 'fuel_categories_dialog.dart';
+import 'crafting_categories_dialog.dart';
 
 class Sidebar extends StatefulWidget {
   const Sidebar({super.key});
@@ -41,12 +43,7 @@ class _SidebarState extends State<Sidebar> {
       _selectedCategories.addAll(allCategories);
       _initialized = true;
     }
-    // Also ensure new categories are added if data changes (e.g. custom recipe added with new category)
-    // But we don't want to re-select everything if user deselected some.
-    // For simplicity, we'll just rely on manual filtering, but if a new category appears it won't be selected by default if we strictly filter?
-    // Actually, "Select All" usually implies "Everything".
-    // Let's handle this in the filter dialog.
-
+    
     final filteredRecipes = allRecipes.where((r) {
       final matchesSearch = _searchQuery.isEmpty ||
           r.name.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -92,6 +89,16 @@ class _SidebarState extends State<Sidebar> {
                 showDialog(
                   context: context,
                   builder: (ctx) => const FuelCategoriesDialog(),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.category, size: 20),
+              tooltip: "Crafting Categories",
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => const CraftingCategoriesDialog(),
                 );
               },
             ),
@@ -174,7 +181,8 @@ class _SidebarState extends State<Sidebar> {
                           color: Colors.purple, fontWeight: FontWeight.bold)
                       : null,
                 ),
-                subtitle: Text("${recipe.category} • ${recipe.time}s",
+                // Show crafting category instead of item category
+                subtitle: Text("Category: ${recipe.category} • ${recipe.time}s",
                     style: const TextStyle(fontSize: 10)),
                 dense: true,
                 tileColor: isOnBoard
@@ -183,13 +191,21 @@ class _SidebarState extends State<Sidebar> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isOnBoard)
-                      const Icon(Icons.check, color: Colors.green, size: 16),
                     if (isCustom) ...[
-                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue, size: 16),
+                        tooltip: "Edit Recipe",
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => EditCustomRecipeDialog(recipe: recipe),
+                          );
+                        },
+                      ),
                       IconButton(
                         icon: const Icon(Icons.delete,
                             color: Colors.red, size: 16),
+                        tooltip: "Delete Recipe",
                         onPressed: () {
                           _confirmDelete(
                               context, provider, recipe.id, recipe.name);

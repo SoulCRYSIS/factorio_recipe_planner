@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:graphview/GraphView.dart';
 import '../providers/planner_provider.dart';
 import '../models/node_data.dart';
-import '../services/data_manager.dart';
 import '../widgets/recipe_node.dart';
 import '../widgets/sidebar.dart';
+import '../services/lua_export_service.dart';
 
 class PlannerScreen extends StatelessWidget {
   const PlannerScreen({super.key});
@@ -32,8 +32,6 @@ class PlannerScreen extends StatelessWidget {
             itemBuilder: (context) => const [
               PopupMenuItem(value: LayeringStrategy.longestPath, child: Text("Longest Path")),
               PopupMenuItem(value: LayeringStrategy.coffmanGraham, child: Text("Coffman Graham")),
-              PopupMenuItem(value: LayeringStrategy.networkSimplex, child: Text("Network Simplex")),
-              PopupMenuItem(value: LayeringStrategy.topDown, child: Text("Top Down")),
             ],
           ),
           PopupMenuButton<int>(
@@ -49,6 +47,22 @@ class PlannerScreen extends StatelessWidget {
               const PopupMenuItem(value: SugiyamaConfiguration.ORIENTATION_RIGHT_LEFT, child: Text("Right -> Left")),
             ],
           ),
+          
+          // Code Export Menu
+          PopupMenuButton<LuaExportType>(
+            icon: const Icon(Icons.code),
+            tooltip: "Copy Game Code",
+            onSelected: (type) => LuaExportService.copyExportToClipboard(context, type),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: LuaExportType.machineItems, child: Text("Copy Machine Items")),
+              PopupMenuItem(value: LuaExportType.machineRecipes, child: Text("Copy Machine Recipes")),
+              PopupMenuItem(value: LuaExportType.machineEntities, child: Text("Copy Machine Entities")),
+              PopupMenuDivider(),
+              PopupMenuItem(value: LuaExportType.otherItems, child: Text("Copy Other Items")),
+              PopupMenuItem(value: LuaExportType.otherItemRecipes, child: Text("Copy Other Item Recipes")),
+            ],
+          ),
+
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: () => _export(context),
@@ -80,6 +94,7 @@ class PlannerScreen extends StatelessWidget {
                   graph: provider.graph,
                   animated: false,
                   autoZoomToFit: true,
+                  centerGraph: true,
                   algorithm: SugiyamaAlgorithm(provider.builder),
                   paint: Paint()
                     ..color = Colors.grey.shade400
@@ -148,68 +163,3 @@ class PlannerScreen extends StatelessWidget {
     );
   }
 }
-
-class _AddBaseRecipeDialog extends StatefulWidget {
-  @override
-  State<_AddBaseRecipeDialog> createState() => _AddBaseRecipeDialogState();
-}
-
-class _AddBaseRecipeDialogState extends State<_AddBaseRecipeDialog> {
-  final _searchController = TextEditingController();
-  
-  @override
-  Widget build(BuildContext context) {
-    final dataManager = Provider.of<DataManager>(context, listen: false);
-    // Filter recipes based on search
-    final recipes = dataManager.data?.recipes ?? [];
-    
-    // Simple efficient filtering for display
-    final filtered = _searchController.text.isEmpty 
-      ? recipes.take(100).toList() 
-      : recipes.where((r) => r.name.toLowerCase().contains(_searchController.text.toLowerCase())).take(100).toList();
-
-    return AlertDialog(
-      title: const Text("Add Base Recipe"),
-      content: SizedBox(
-        width: 400,
-        height: 500,
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: "Search recipes...",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (ctx, i) {
-                  final recipe = filtered[i];
-                  return ListTile(
-                    title: Text(recipe.name),
-                    subtitle: Text(recipe.category),
-                    onTap: () {
-                      Provider.of<PlannerProvider>(context, listen: false).addRecipeNode(recipe);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-      ],
-    );
-  }
-}
-
-
-

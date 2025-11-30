@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/node_data.dart';
+import '../providers/planner_provider.dart';
+import '../models/item.dart';
+import '../services/data_manager.dart';
 import 'factorio_icon.dart';
 import 'edit_custom_recipe_dialog.dart';
 
@@ -11,7 +15,13 @@ class RecipeNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recipe = nodeData.recipe;
+    final provider = Provider.of<PlannerProvider>(context, listen: false);
+    final dataManager = Provider.of<DataManager>(context, listen: false);
     
+    // Find producers (machines) that support this recipe's categories
+    final categoriesToCheck = [recipe.category, ...recipe.additionalCategories];
+    final producers = _findProducers(provider, dataManager, categoriesToCheck);
+
     return GestureDetector(
       onTap: () {
         // Open edit dialog if it's a custom recipe
@@ -73,12 +83,12 @@ class RecipeNode extends StatelessWidget {
             ),
             Text("${recipe.time}s", style: const TextStyle(fontSize: 9, color: Colors.grey)),
             
-            // Producers
-            if (recipe.producers.isNotEmpty) ...[
+            // Producers (Dynamic based on category)
+            if (producers.isNotEmpty) ...[
               const SizedBox(height: 4),
               Wrap(
                 spacing: 2,
-                children: recipe.producers.map((id) => FactorioIcon(itemId: id, size: 16)).toList(),
+                children: producers.take(5).map((item) => FactorioIcon(itemId: item.id, size: 16)).toList(),
               ),
             ],
       
@@ -103,5 +113,17 @@ class RecipeNode extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Item> _findProducers(PlannerProvider provider, DataManager dataManager, List<String> categories) {
+    final allItems = [...provider.customItems, ...?dataManager.data?.items];
+    return allItems.where((item) {
+      // Check custom items with machine definition
+      if (item.machine?.craftingCategories != null) {
+        // Machine must support ANY of the recipe's categories
+        return item.machine!.craftingCategories!.any((c) => categories.contains(c));
+      }
+      return false;
+    }).toList();
   }
 }

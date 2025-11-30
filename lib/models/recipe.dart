@@ -7,6 +7,10 @@ class Recipe {
   final String id;
   final String name;
   final String category;
+  
+  @JsonKey(defaultValue: [])
+  final List<String> additionalCategories;
+  
   final int row;
   final double time;
   
@@ -25,6 +29,7 @@ class Recipe {
     required this.id,
     required this.name,
     required this.category,
+    this.additionalCategories = const [],
     required this.row,
     required this.time,
     required this.ingredients,
@@ -35,4 +40,3 @@ class Recipe {
   factory Recipe.fromJson(Map<String, dynamic> json) => _$RecipeFromJson(json);
   Map<String, dynamic> toJson() => _$RecipeToJson(this);
 }
-

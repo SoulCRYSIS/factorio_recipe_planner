@@ -34,6 +34,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
   final List<String> _machineTypes = ["electric", "burner"];
   
   final List<String> _selectedFuelCategories = [];
+  final List<String> _selectedCraftingCategories = [];
 
   @override
   void dispose() {
@@ -87,6 +88,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
   Widget build(BuildContext context) {
     final provider = Provider.of<PlannerProvider>(context);
     final availableFuelCategories = provider.availableFuelCategories.toList()..sort();
+    final availableCraftingCategories = provider.availableCraftingCategories.toList()..sort();
 
     return AlertDialog(
       title: const Text("New Custom Item"),
@@ -219,6 +221,33 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
                   onChanged: (val) => setState(() => _machineType = val!),
                 ),
                 const SizedBox(height: 8),
+
+                // Crafting Categories
+                const Text("Crafting Categories:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children: availableCraftingCategories.map((cat) {
+                    final isSelected = _selectedCraftingCategories.contains(cat);
+                    return FilterChip(
+                      label: Text(cat),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedCraftingCategories.add(cat);
+                          } else {
+                            _selectedCraftingCategories.remove(cat);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                if (availableCraftingCategories.isEmpty)
+                   const Text("No crafting categories available. Add one via Sidebar > Crafting Categories.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                
+                const SizedBox(height: 8),
                 
                 if (_machineType == 'burner') ...[
                   const Text("Fuel Categories:", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -284,6 +313,7 @@ class _AddCustomItemDialogState extends State<AddCustomItemDialog> {
                    speed: double.tryParse(_speedController.text) ?? 1.0,
                    type: _machineType,
                    fuelCategories: _machineType == 'burner' ? _selectedFuelCategories : null,
+                   craftingCategories: _selectedCraftingCategories,
                    usage: double.tryParse(_usageController.text),
                    pollution: double.tryParse(_pollutionController.text),
                    baseEffect: productivity > 0 ? {'productivity': productivity} : null,

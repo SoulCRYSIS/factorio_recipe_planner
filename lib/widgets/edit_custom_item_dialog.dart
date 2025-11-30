@@ -34,6 +34,7 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
   final List<String> _machineTypes = ["electric", "burner"];
   
   List<String> _selectedFuelCategories = [];
+  List<String> _selectedCraftingCategories = [];
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
     _pollutionController = TextEditingController(text: m?.pollution?.toString() ?? "");
     _machineType = m?.type ?? "electric";
     _selectedFuelCategories = List.from(m?.fuelCategories ?? []);
+    _selectedCraftingCategories = List.from(m?.craftingCategories ?? []);
   }
 
   @override
@@ -105,6 +107,7 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
   Widget build(BuildContext context) {
     final provider = Provider.of<PlannerProvider>(context);
     final availableFuelCategories = provider.availableFuelCategories.toList()..sort();
+    final availableCraftingCategories = provider.availableCraftingCategories.toList()..sort();
 
     return AlertDialog(
       title: const Text("Edit Custom Item"),
@@ -236,6 +239,33 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
                   onChanged: (val) => setState(() => _machineType = val!),
                 ),
                 const SizedBox(height: 8),
+
+                // Crafting Categories
+                const Text("Crafting Categories:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children: availableCraftingCategories.map((cat) {
+                    final isSelected = _selectedCraftingCategories.contains(cat);
+                    return FilterChip(
+                      label: Text(cat),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedCraftingCategories.add(cat);
+                          } else {
+                            _selectedCraftingCategories.remove(cat);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                if (availableCraftingCategories.isEmpty)
+                   const Text("No crafting categories available. Add one via Sidebar > Crafting Categories.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                
+                const SizedBox(height: 8),
                 
                 if (_machineType == 'burner') ...[
                   const Text("Fuel Categories:", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -301,6 +331,7 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
                    speed: double.tryParse(_speedController.text) ?? 1.0,
                    type: _machineType,
                    fuelCategories: _machineType == 'burner' ? _selectedFuelCategories : null,
+                   craftingCategories: _selectedCraftingCategories,
                    usage: double.tryParse(_usageController.text),
                    pollution: double.tryParse(_pollutionController.text),
                    baseEffect: productivity > 0 ? {'productivity': productivity} : null,
@@ -326,4 +357,3 @@ class _EditCustomItemDialogState extends State<EditCustomItemDialog> {
     );
   }
 }
-

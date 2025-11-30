@@ -14,6 +14,9 @@ MachineDefinition _$MachineDefinitionFromJson(Map<String, dynamic> json) =>
       fuelCategories: (json['fuelCategories'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
+      craftingCategories: (json['craftingCategories'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
       usage: (json['usage'] as num?)?.toDouble(),
       pollution: (json['pollution'] as num?)?.toDouble(),
       size: (json['size'] as List<dynamic>?)
@@ -31,6 +34,7 @@ Map<String, dynamic> _$MachineDefinitionToJson(MachineDefinition instance) =>
       'modules': instance.modules,
       'type': instance.type,
       'fuelCategories': instance.fuelCategories,
+      'craftingCategories': instance.craftingCategories,
       'usage': instance.usage,
       'pollution': instance.pollution,
       'size': instance.size,

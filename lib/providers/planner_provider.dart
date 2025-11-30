@@ -22,24 +22,18 @@ class PlannerProvider extends ChangeNotifier {
   final List<Recipe> _customRecipes = [];
   final List<Item> _customItems = [];
   final Set<String> _customFuelCategories = {};
-  Set<String>? _cachedBaseFuelCategories;
-
+  final Set<String> _customCraftingCategories = {};
+  
   List<Recipe> get customRecipes => _customRecipes;
   List<Item> get customItems => _customItems;
   List<Node> get nodes => _nodes;
 
   Set<String> get availableFuelCategories {
-    if (_cachedBaseFuelCategories == null) {
-      _cachedBaseFuelCategories = {};
-      if (_dataManager.data != null) {
-        for (var item in _dataManager.data!.items) {
-          if (item.machine?.fuelCategories != null) {
-            _cachedBaseFuelCategories!.addAll(item.machine!.fuelCategories!);
-          }
-        }
-      }
-    }
-    return {..._cachedBaseFuelCategories!, ..._customFuelCategories};
+    return _customFuelCategories;
+  }
+
+  Set<String> get availableCraftingCategories {
+    return _customCraftingCategories;
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -310,6 +304,22 @@ class PlannerProvider extends ChangeNotifier {
     // If user wants to 'hide' them, that's a different feature.
   }
 
+  void addCraftingCategory(String category) {
+    if (!_customCraftingCategories.contains(category)) {
+      _customCraftingCategories.add(category);
+      _scheduleAutoSave();
+      notifyListeners();
+    }
+  }
+
+  void deleteCraftingCategory(String category) {
+    if (_customCraftingCategories.contains(category)) {
+      _customCraftingCategories.remove(category);
+      _scheduleAutoSave();
+      notifyListeners();
+    }
+  }
+
   // Helper to find item name
   String getItemName(String id) {
     // Check custom items first
@@ -327,6 +337,7 @@ class PlannerProvider extends ChangeNotifier {
       'customItems': _customItems.map((i) => i.toJson()).toList(),
       'customRecipes': _customRecipes.map((r) => r.toJson()).toList(),
       'customFuelCategories': _customFuelCategories.toList(),
+      'customCraftingCategories': _customCraftingCategories.toList(),
       'nodes': _nodes.map((n) {
         final nd = n.key!.value as NodeData;
         return {
@@ -347,6 +358,7 @@ class PlannerProvider extends ChangeNotifier {
       _customItems.clear();
       _customRecipes.clear();
       _customFuelCategories.clear();
+      _customCraftingCategories.clear();
 
       if (data['customItems'] != null) {
         for (var i in data['customItems']) {
@@ -363,6 +375,12 @@ class PlannerProvider extends ChangeNotifier {
       if (data['customFuelCategories'] != null) {
         for (var c in data['customFuelCategories']) {
           _customFuelCategories.add(c);
+        }
+      }
+
+      if (data['customCraftingCategories'] != null) {
+        for (var c in data['customCraftingCategories']) {
+          _customCraftingCategories.add(c);
         }
       }
 

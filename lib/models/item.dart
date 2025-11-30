@@ -8,6 +8,7 @@ class MachineDefinition {
   final int? modules;
   final String? type; // "burner", "electric", etc.
   final List<String>? fuelCategories;
+  final List<String>? craftingCategories; // New field
   final double? usage;
   final double? pollution;
   final List<int>? size; // [width, height]
@@ -19,6 +20,7 @@ class MachineDefinition {
     this.modules,
     this.type,
     this.fuelCategories,
+    this.craftingCategories,
     this.usage,
     this.pollution,
     this.size,

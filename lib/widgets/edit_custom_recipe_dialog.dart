@@ -20,7 +20,8 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
 
   late Map<String, double> _ingredients;
   late Map<String, double> _products;
-  late List<String> _producers;
+  
+  List<String> _selectedCategories = [];
 
   @override
   void initState() {
@@ -29,7 +30,12 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
     _timeController = TextEditingController(text: widget.recipe.time.toString());
     _ingredients = Map.from(widget.recipe.ingredients);
     _products = Map.from(widget.recipe.products);
-    _producers = List.from(widget.recipe.producers);
+    
+    // Initialize categories from both fields
+    _selectedCategories.add(widget.recipe.category);
+    _selectedCategories.addAll(widget.recipe.additionalCategories);
+    // Remove duplicates if any (though there shouldn't be)
+    _selectedCategories = _selectedCategories.toSet().toList();
   }
 
   @override
@@ -41,6 +47,13 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<PlannerProvider>(context);
+    final dataManager = Provider.of<DataManager>(context);
+    final allCategories = provider.availableCraftingCategories.toList()..sort();
+
+    // Find machines that can craft this category (ANY of selected)
+    final compatibleMachines = _findProducers(provider, dataManager, _selectedCategories);
+
     return AlertDialog(
       title: const Text("Edit Custom Recipe"),
       content: SizedBox(
@@ -56,6 +69,51 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
                     labelText: "Recipe Name", border: OutlineInputBorder()),
               ),
               const SizedBox(height: 8),
+              
+              // Unified Category Selection
+              const Text("Crafting Categories:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: allCategories.map((cat) {
+                  final isSelected = _selectedCategories.contains(cat);
+                  return FilterChip(
+                    label: Text(cat),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedCategories.add(cat);
+                        } else {
+                          _selectedCategories.remove(cat);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              if (allCategories.isEmpty)
+                 const Text("No crafting categories available. Add one via Sidebar > Crafting Categories.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              if (_selectedCategories.isEmpty && allCategories.isNotEmpty)
+                 const Text("Please select at least one category.", style: TextStyle(color: Colors.orange, fontSize: 10)),
+
+              const SizedBox(height: 8),
+              
+              if (compatibleMachines.isNotEmpty) ...[
+                const Text("Compatible Machines:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children: compatibleMachines.map((m) => Tooltip(
+                    message: m.name,
+                    child: FactorioIcon(itemId: m.id, size: 24),
+                  )).toList(),
+                ),
+              ] else if (_selectedCategories.isNotEmpty) ...[
+                 const Text("No machines found for selected categories.", style: TextStyle(color: Colors.orange, fontSize: 12)),
+              ],
+
+              const SizedBox(height: 8),
               TextField(
                 controller: _timeController,
                 decoration: const InputDecoration(
@@ -66,8 +124,6 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
               _buildSection("Ingredients", _ingredients),
               const Divider(),
               _buildSection("Products", _products),
-              const Divider(),
-              _buildProducerSection(),
             ],
           ),
         ),
@@ -103,6 +159,18 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
         ),
       ],
     );
+  }
+
+  List<Item> _findProducers(PlannerProvider provider, DataManager dataManager, List<String> categories) {
+    if (categories.isEmpty) return [];
+    final allItems = [...provider.customItems, ...?dataManager.data?.items];
+    return allItems.where((item) {
+      if (item.machine?.craftingCategories != null) {
+        // Check if machine supports ANY of the categories
+        return item.machine!.craftingCategories!.any((c) => categories.contains(c));
+      }
+      return false;
+    }).toList();
   }
 
   Widget _buildSection(String title, Map<String, double> items) {
@@ -145,36 +213,6 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
     );
   }
 
-  Widget _buildProducerSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Producers (Machines)", style: TextStyle(fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () => _showMachinePicker(),
-            ),
-          ],
-        ),
-        ..._producers.map((id) {
-          final provider = Provider.of<PlannerProvider>(context, listen: false);
-          final name = provider.getItemName(id);
-          return ListTile(
-            leading: FactorioIcon(itemId: id),
-            title: Text(name),
-            trailing: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, size: 16),
-              onPressed: () => setState(() => _producers.remove(id)),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
   void _showItemPicker(Function(Item, double) onSelected) {
     showDialog(
       context: context,
@@ -182,34 +220,29 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
     );
   }
 
-  void _showMachinePicker() {
-    showDialog(
-      context: context,
-      builder: (ctx) => _ItemPickerDialog(
-        onSelected: (item, _) {
-          setState(() {
-            if (!_producers.contains(item.id)) {
-              _producers.add(item.id);
-            }
-          });
-        },
-        onlyMachines: true,
-      ),
-    );
-  }
-
   void _saveRecipe() {
     if (_nameController.text.isEmpty || _products.isEmpty) return;
 
+    String primaryCategory = 'crafting';
+    List<String> additionalCategories = [];
+
+    if (_selectedCategories.isNotEmpty) {
+       primaryCategory = _selectedCategories.first;
+       if (_selectedCategories.length > 1) {
+         additionalCategories = _selectedCategories.sublist(1);
+       }
+    }
+
     final updatedRecipe = Recipe(
-      id: widget.recipe.id, // Keep same ID
+      id: widget.recipe.id,
       name: _nameController.text,
-      category: 'custom',
+      category: primaryCategory,
+      additionalCategories: additionalCategories,
       row: widget.recipe.row,
       time: double.tryParse(_timeController.text) ?? 1.0,
       ingredients: _ingredients,
       products: _products,
-      producers: _producers,
+      producers: [], // Deprecated
     );
 
     final provider = Provider.of<PlannerProvider>(context, listen: false);
@@ -220,8 +253,7 @@ class _EditCustomRecipeDialogState extends State<EditCustomRecipeDialog> {
 
 class _ItemPickerDialog extends StatefulWidget {
   final Function(Item, double) onSelected;
-  final bool onlyMachines;
-  const _ItemPickerDialog({required this.onSelected, this.onlyMachines = false});
+  const _ItemPickerDialog({required this.onSelected});
 
   @override
   State<_ItemPickerDialog> createState() => _ItemPickerDialogState();
@@ -238,12 +270,8 @@ class _ItemPickerDialogState extends State<_ItemPickerDialog> {
 
     var allItems = [...provider.customItems, ...?dataManager.data?.items];
     
-    if (widget.onlyMachines) {
-      allItems = allItems.where((i) => i.machine != null).toList();
-    }
-
     return AlertDialog(
-      title: Text(widget.onlyMachines ? "Select Machine" : "Select Item"),
+      title: const Text("Select Item"),
       content: SizedBox(
         width: 300,
         height: 400,
@@ -255,12 +283,11 @@ class _ItemPickerDialogState extends State<_ItemPickerDialog> {
                   hintText: "Search...", prefixIcon: Icon(Icons.search)),
               onChanged: (val) => setState(() {}),
             ),
-            if (!widget.onlyMachines)
-              TextField(
-                controller: _amountController,
-                decoration: const InputDecoration(labelText: "Amount"),
-                keyboardType: TextInputType.number,
-              ),
+            TextField(
+              controller: _amountController,
+              decoration: const InputDecoration(labelText: "Amount"),
+              keyboardType: TextInputType.number,
+            ),
             Expanded(
               child: ListView.builder(
                 itemCount: allItems.length,
@@ -290,4 +317,3 @@ class _ItemPickerDialogState extends State<_ItemPickerDialog> {
     );
   }
 }
-

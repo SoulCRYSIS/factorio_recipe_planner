@@ -17,10 +17,12 @@ enum LuaExportType {
 class LuaExportService {
   static void copyExportToClipboard(BuildContext context, LuaExportType type) {
     final code = _generateCode(context, type);
-    
+
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nothing to export for this category (no active custom nodes found).")),
+        const SnackBar(
+            content: Text(
+                "Nothing to export for this category (no active custom nodes found).")),
       );
       return;
     }
@@ -49,12 +51,12 @@ class LuaExportService {
       final data = node.key!.value as NodeData;
       if (data.isCustom) {
         usedCustomRecipeIds.add(data.recipe.id);
-        
+
         data.recipe.ingredients.keys.forEach((itemId) {
           if (_isCustomItem(provider, itemId)) usedCustomItemIds.add(itemId);
         });
         data.recipe.products.keys.forEach((itemId) {
-           if (_isCustomItem(provider, itemId)) usedCustomItemIds.add(itemId);
+          if (_isCustomItem(provider, itemId)) usedCustomItemIds.add(itemId);
         });
       }
     }
@@ -62,15 +64,17 @@ class LuaExportService {
     final customRecipesToExport = provider.customRecipes
         .where((r) => usedCustomRecipeIds.contains(r.id))
         .toList();
-    
+
     final customItemsToExport = provider.customItems
         .where((i) => usedCustomItemIds.contains(i.id))
         .toList();
 
-    final machineItems = customItemsToExport.where((i) => i.machine != null).toList();
-    
+    final machineItems =
+        customItemsToExport.where((i) => i.machine != null).toList();
+
     final machineRecipes = customRecipesToExport.where((r) {
-      return r.products.keys.any((prodId) => machineItems.any((m) => m.id == prodId));
+      return r.products.keys
+          .any((prodId) => machineItems.any((m) => m.id == prodId));
     }).toList();
 
     final buffer = StringBuffer();
@@ -78,7 +82,6 @@ class LuaExportService {
     switch (type) {
       case LuaExportType.machineItems:
         if (machineItems.isNotEmpty) {
-          buffer.writeln("-- Machine Items");
           for (var item in machineItems) {
             buffer.writeln(_generateMachineItem(item));
           }
@@ -86,35 +89,36 @@ class LuaExportService {
         break;
       case LuaExportType.machineRecipes:
         if (machineRecipes.isNotEmpty) {
-          buffer.writeln("-- Machine Recipes");
           for (var recipe in machineRecipes) {
-            buffer.writeln(_generateRecipe(recipe, getItemName, isMachineRecipe: true));
+            buffer.writeln(
+                _generateRecipe(recipe, getItemName, isMachineRecipe: true));
           }
         }
         break;
       case LuaExportType.machineEntities:
         if (machineItems.isNotEmpty) {
-          buffer.writeln("-- Machine Entities");
           for (var item in machineItems) {
             buffer.writeln(_generateMachineEntity(item));
           }
         }
         break;
       case LuaExportType.otherItems:
-        final otherItems = customItemsToExport.where((i) => i.machine == null).toList();
+        final otherItems =
+            customItemsToExport.where((i) => i.machine == null).toList();
         if (otherItems.isNotEmpty) {
-          buffer.writeln("-- Other Items");
           for (var item in otherItems) {
             buffer.writeln(_generateOtherItem(item));
           }
         }
         break;
       case LuaExportType.otherItemRecipes:
-        final otherRecipes = customRecipesToExport.where((r) => !machineRecipes.contains(r)).toList();
+        final otherRecipes = customRecipesToExport
+            .where((r) => !machineRecipes.contains(r))
+            .toList();
         if (otherRecipes.isNotEmpty) {
-          buffer.writeln("-- Other Item Recipes");
           for (var recipe in otherRecipes) {
-            buffer.writeln(_generateRecipe(recipe, getItemName, isMachineRecipe: false));
+            buffer.writeln(
+                _generateRecipe(recipe, getItemName, isMachineRecipe: false));
           }
         }
         break;
@@ -153,16 +157,17 @@ class LuaExportService {
   static String _generateMachineEntity(Item item) {
     final name = _formatName(item.name);
     final def = item.machine!;
-    
-    final craftingCategories = def.craftingCategories?.map((c) => '"$c"').join(', ') ?? "";
+
+    final craftingCategories =
+        def.craftingCategories?.map((c) => '"$c"').join(', ') ?? "";
     final energyUsage = "${def.usage ?? 500}kW";
     final craftingSpeed = def.speed;
     final type = def.entityType ?? "assembling-machine";
 
     String energySource = "";
     if (def.type == 'burner') {
-       final cats = def.fuelCategories?.map((c) => '"$c"').join(', ') ?? "";
-       energySource = '''
+      final cats = def.fuelCategories?.map((c) => '"$c"').join(', ') ?? "";
+      energySource = '''
     energy_source = {
       type = "burner",
       fuel_categories = { $cats },
@@ -170,12 +175,16 @@ class LuaExportService {
       fuel_inventory_size = 1,
       emissions_per_minute = ${def.pollution ?? 0},
     },''';
+    } else if (def.type == 'electric') {
+      energySource = '''
+    energy_source = {
+      type = "electric",
+      usage_priority = "secondary-input",
+    },''';
     } else {
       energySource = '''
     energy_source = {
       type = "void",
-      usage_priority = "secondary-input",
-      emissions_per_minute = ${def.pollution ?? 0},
     },''';
     }
 
@@ -203,12 +212,6 @@ class LuaExportService {
     damaged_trigger_effect = hit_effects.entity(),
     max_health = 500,
     dying_explosion = "steel-furnace-explosion",
-    resistances = {
-      {
-        type = "fire",
-        percent = 100,
-      },
-    },
     graphics_set = {
       animation = {
         layers = {
@@ -280,12 +283,13 @@ class LuaExportService {
     },''';
   }
 
-  static String _generateRecipe(Recipe recipe, String Function(String) getName, {required bool isMachineRecipe}) {
+  static String _generateRecipe(Recipe recipe, String Function(String) getName,
+      {required bool isMachineRecipe}) {
     final name = _formatName(recipe.name);
-    
+
     final ingredients = recipe.ingredients.entries.map((e) {
-      final type = "item"; 
-      final iName = getName(e.key); 
+      final type = "item";
+      final iName = getName(e.key);
       return '{ type = "$type", name = "$iName", amount = ${e.value} }';
     }).join(',\n        ');
 

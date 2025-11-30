@@ -182,7 +182,7 @@ class _SidebarState extends State<Sidebar> {
                       : null,
                 ),
                 // Show crafting category instead of item category
-                subtitle: Text("Category: ${recipe.category} • ${recipe.time}s",
+                subtitle: Text("${recipe.additionalCategories.join(", ")} • ${recipe.time}s",
                     style: const TextStyle(fontSize: 10)),
                 dense: true,
                 tileColor: isOnBoard
